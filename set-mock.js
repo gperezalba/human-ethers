@@ -2,7 +2,8 @@ const { ethers } = require("ethers")
 require('dotenv').config()
 const { SET_MOCK_ADDRESS, SET_MOCK_ABI } = require("./Constants")
 const { getHumanByEmail, getSignedUserOperation } = require("./Human")
-const { getProvider, getEntrypointContract } = require("./Contracts")
+const { getProvider } = require("./Contracts")
+const { handleOps } = require("./Entrypoint")
 
 main()
 async function main() {
@@ -12,13 +13,7 @@ async function main() {
     const data = encodeFunctionData(SET_MOCK_ABI, "set", [ethers.utils.parseEther("777")])
     const value = ethers.BigNumber.from("0")
     const userOp = await getSignedUserOperation(humanAddress, target, value, data, signer)
-
-    const bundler = new ethers.Wallet(process.env.BUNDLER_PRIV_KEY, getProvider())
-    const entryPointContract = getEntrypointContract().connect(bundler)
-    const response = await entryPointContract.handleOps([userOp], ethers.constants.AddressZero)
-    console.log(response.hash)
-    const receipt = await response.wait()
-    console.log("Success")
+    handleOps([userOp])
 }
 
 function encodeFunctionData(abi, functionName, paramsArray) {
