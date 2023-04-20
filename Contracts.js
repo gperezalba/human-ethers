@@ -1,5 +1,5 @@
 const { ethers } = require("ethers")
-const { RPC_URL, HUMAN_FACTORY_ABI, HUMAN_ABI, HUMAN_FACTORY_ADDRESS, ENTRY_POINT_ADDRESS, HUMAN_ENTRY_POINT_ABI } = require("./Constants")
+const { RPC_URL, HUMAN_FACTORY_ABI, HUMAN_ABI, HUMAN_FACTORY_ADDRESS, ENTRY_POINT_ADDRESS, HUMAN_ENTRY_POINT_ABI, EXECUTE_POLICIES_ADDRESS, EXECUTE_POLICIES_ABI } = require("./Constants")
 
 function getEntrypointContract() {
     return new ethers.Contract(ENTRY_POINT_ADDRESS, HUMAN_ENTRY_POINT_ABI, getProvider())
@@ -7,6 +7,10 @@ function getEntrypointContract() {
 
 function getFactoryContract() {
     return new ethers.Contract(HUMAN_FACTORY_ADDRESS, HUMAN_FACTORY_ABI, getProvider())
+}
+
+function getExecutePoliciesContract() {
+    return new ethers.Contract(EXECUTE_POLICIES_ADDRESS, EXECUTE_POLICIES_ABI, getProvider())
 }
 
 function getHumanContract(humanAddress) {
@@ -17,4 +21,4 @@ function getProvider() {
     return new ethers.providers.JsonRpcProvider(RPC_URL)
 }
 
-module.exports = { getEntrypointContract, getFactoryContract, getHumanContract, getProvider }
+module.exports = { getEntrypointContract, getFactoryContract, getHumanContract, getProvider, getExecutePoliciesContract }
