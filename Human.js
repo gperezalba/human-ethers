@@ -1,24 +1,8 @@
 const { ethers } = require("ethers")
 require('dotenv').config()
 const { getUserOpHash, getEmptyUserOperation } = require("./UserOperation")
-const { RPC_URL, HUMAN_FACTORY_ABI, HUMAN_ABI, HUMAN_FACTORY_ADDRESS, ENTRY_POINT_ADDRESS, HUMAN_ENTRY_POINT_ABI, SET_MOCK_ADDRESS, SET_MOCK_ABI } = require("./Constants")
-
-main()
-async function main() {
-    const signer = new ethers.Wallet(process.env.SIGNER_PRIV_KEY, getProvider()) //signer from W3A, human.owner()
-    const humanAddress = await getHumanByEmail("gperezalba94@gmail.com")
-    const target = SET_MOCK_ADDRESS
-    const data = encodeFunctionData(SET_MOCK_ABI, "set", [ethers.utils.parseEther("777")])
-    const value = ethers.BigNumber.from("0")
-    const userOp = await getSignedUserOperation(humanAddress, target, value, data, signer)
-
-    const bundler = new ethers.Wallet(process.env.BUNDLER_PRIV_KEY, getProvider())
-    const entryPointContract = getEntrypointContract().connect(bundler)
-    const response = await entryPointContract.handleOps([userOp], ethers.constants.AddressZero)
-    console.log(response.hash)
-    const receipt = await response.wait()
-    console.log("Success")
-}
+const { getHumanContract, getFactoryContract, getProvider } = require("./Contracts")
+const { HUMAN_ABI, ENTRY_POINT_ADDRESS } = require("./Constants")
 
 async function getSignedUserOperation(humanAddress, target, value, data, signer) {
     const executeData = getExecuteData(target, value, data)
@@ -67,18 +51,4 @@ function encodeFunctionData(abi, functionName, paramsArray) {
     return contract.interface.encodeFunctionData(functionName, paramsArray)
 }
 
-function getEntrypointContract() {
-    return new ethers.Contract(ENTRY_POINT_ADDRESS, HUMAN_ENTRY_POINT_ABI, getProvider())
-}
-
-function getFactoryContract() {
-    return new ethers.Contract(HUMAN_FACTORY_ADDRESS, HUMAN_FACTORY_ABI, getProvider())
-}
-
-function getHumanContract(humanAddress) {
-    return new ethers.Contract(humanAddress, HUMAN_ABI, getProvider())
-}
-
-function getProvider() {
-    return new ethers.providers.JsonRpcProvider(RPC_URL)
-}
+module.exports = { getSignedUserOperation, getHumanByEmail }
