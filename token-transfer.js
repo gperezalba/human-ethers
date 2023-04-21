@@ -11,9 +11,14 @@ async function main() {
     const humanAddress = await getHumanByEmail("gperezalba94@gmail.com")
     const target = TOKEN_MOCK_ADDRESS
     const data = encodeFunctionData(TOKEN_MOCK_ABI, "transfer", ["0xCD7669AAFffB7F683995E6eD9b53d1E5FE72c142", ethers.utils.parseEther("1")])
+    const transferGas = await getProvider().estimateGas({
+        from: humanAddress,
+        to: TOKEN_MOCK_ADDRESS,
+        data: data
+    })
     const value = ethers.BigNumber.from("0")
     const userOp = await getSignedUserOperation(humanAddress, target, value, data, signer)
-    handleOps([userOp])
+    handleOps([userOp], transferGas)
 }
 
 function encodeFunctionData(abi, functionName, paramsArray) {
