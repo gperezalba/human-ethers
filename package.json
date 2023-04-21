@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "deploy-human": "node deploy-human.js",
-    "set-mock": "node set-mock.js"
+    "set-mock": "node set-mock.js",
+    "token-transfer": "node token-transfer.js"
   },
   "author": "",
   "license": "ISC",
