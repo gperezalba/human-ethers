@@ -13,7 +13,7 @@ async function main() {
     const data = encodeFunctionData(TOKEN_MOCK_ABI, "transfer", ["0xCD7669AAFffB7F683995E6eD9b53d1E5FE72c142", ethers.utils.parseEther("1")])
     const transferGas = await getProvider().estimateGas({
         from: humanAddress,
-        to: TOKEN_MOCK_ADDRESS,
+        to: target,
         data: data
     })
     const value = ethers.BigNumber.from("0")
