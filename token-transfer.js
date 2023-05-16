@@ -17,8 +17,8 @@ async function main() {
         data: data
     })
     const value = ethers.BigNumber.from("0")
-    const userOp = await getSignedUserOperation(humanAddress, target, value, data, signer)
-    handleOps([userOp], transferGas)
+    const userOp = await getSignedUserOperation(humanAddress, target, value, data, signer, transferGas)
+    handleOps([userOp])
 }
 
 function encodeFunctionData(abi, functionName, paramsArray) {

@@ -5,10 +5,15 @@ const { getHumanContract, getFactoryContract, getProvider } = require("./Contrac
 const { HUMAN_ABI, ENTRY_POINT_ADDRESS, HUMAN_FACTORY_ADDRESS, BEACON_PROXY_BYTECODE, BEACON_PROXY_BYTECODE2, BEACON_ADDRESS } = require("./Constants")
 const { executeCheckOwner } = require("./ExecutePolicies")
 
-async function getSignedUserOperation(humanAddress, target, value, data, signer) {
+async function getSignedUserOperation(humanAddress, target, value, data, signer, callGas) {
     const isPoliciesAllowed = await executeCheckOwner(target, data, value)
     const executeData = isPoliciesAllowed ? getExecuteData(target, value, data, "0x") : getExecuteData(target, value, data, await masterSign(humanAddress, "0", target, value, data))
-    const op = await populateUserOp(humanAddress, executeData)
+    let executeGas = await getProvider().estimateGas({
+        from: ENTRY_POINT_ADDRESS,
+        to: humanAddress,
+        data: executeData
+    })
+    const op = await populateUserOp(humanAddress, executeData, executeGas.add(callGas))
     const signature = await signUserOp(op, signer)
     op.signature = signature
     return op
@@ -22,13 +27,14 @@ async function signUserOp(op, signer) {
     return await signer.signMessage(hash)
 }
 
-async function populateUserOp(humanAddress, executeCalldata) {
+async function populateUserOp(humanAddress, executeCalldata, executeGas) {
     const nonce = await getHumanNonce(humanAddress)
     const op = {
         ...getEmptyUserOperation(),
         sender: humanAddress,
         nonce: nonce,
         callData: executeCalldata,
+        callGasLimit: executeGas,
     }
     return op
 }
