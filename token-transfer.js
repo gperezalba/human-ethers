@@ -8,7 +8,8 @@ const { handleOps } = require("./Entrypoint")
 main()
 async function main() {
     const signer = new ethers.Wallet(process.env.SIGNER_PRIV_KEY, getProvider()) //signer from W3A, human.owner()
-    const humanAddress = await getHumanByEmail("gperezalba94@gmail.com")
+    const humanAddress = await getHumanByEmail("email2@humanwallet.com")
+    console.log(humanAddress)
     const target = TOKEN_MOCK_ADDRESS
     const data = encodeFunctionData(TOKEN_MOCK_ABI, "transfer", ["0xCD7669AAFffB7F683995E6eD9b53d1E5FE72c142", ethers.utils.parseEther("1")])
     const transferGas = await getProvider().estimateGas({

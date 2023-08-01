@@ -1,4 +1,5 @@
 const { ethers } = require("ethers")
+const { EXECUTE_POLICIES_ADDRESS } = require("./Constants")
 const { getFactoryContract, getProvider } = require("./Contracts")
 const { getHumanByEmail } = require("./Human")
 
@@ -13,6 +14,7 @@ async function deployHuman(safeOwners, safeSalt, timelock, owner, master, inacti
         timelock,
         owner,
         master,
+        EXECUTE_POLICIES_ADDRESS,
         inactivityTime,
         email
     )

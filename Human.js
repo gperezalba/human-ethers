@@ -7,11 +7,13 @@ const { executeCheckOwner } = require("./ExecutePolicies")
 
 async function getSignedUserOperation(humanAddress, target, value, data, signer, callGas) {
     const isPoliciesAllowed = await executeCheckOwner(target, data, value)
-    const executeData = isPoliciesAllowed ? getExecuteData(target, value, data, "0x") : getExecuteData(target, value, data, await masterSign(humanAddress, "0", target, value, data))
+    const nonce = await getHumanNonce(humanAddress)
+    const estimateNonce = ethers.BigNumber.from(nonce.toString()).sub(ethers.BigNumber.from("1"))
+    const executeData = isPoliciesAllowed ? getExecuteData(target, value, data, "0x") : getExecuteData(target, value, data, await masterSign(humanAddress, nonce, "0", target, value, data))
     let executeGas = await getProvider().estimateGas({
         from: ENTRY_POINT_ADDRESS,
         to: humanAddress,
-        data: executeData
+        data: getExecuteData(target, value, data, await masterSign(humanAddress, estimateNonce, "0", target, value, data))
     })
     const op = await populateUserOp(humanAddress, executeData, executeGas.add(callGas))
     const signature = await signUserOp(op, signer)
@@ -39,10 +41,13 @@ async function populateUserOp(humanAddress, executeCalldata, executeGas) {
     return op
 }
 
-async function masterSign(humanAddress, operationType, target, value, data) {
+async function masterSign(humanAddress, nonce, operationType, target, value, data) {
+    const provider = getProvider()
+    await provider.getBalance(humanAddress)
+    const chainId = provider._network.chainId
     const encoded = ethers.utils.defaultAbiCoder.encode(
-        ["address", "uint256", "address", "uint256", "bytes32"],
-        [humanAddress, operationType, target, value, ethers.utils.keccak256(data)]
+        ["uint256", "address", "uint256", "uint256", "address", "uint256", "bytes32"],
+        [chainId, humanAddress, nonce, operationType, target, value, ethers.utils.keccak256(data)]
     )
     const hash = ethers.utils.keccak256(encoded)
     const masterSigner = new ethers.Wallet(process.env.MASTER_PRIV_KEY)
