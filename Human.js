@@ -1,5 +1,5 @@
 const { ethers } = require("ethers")
-require('dotenv').config()
+require("dotenv").config()
 const { getUserOpHash, getEmptyUserOperation } = require("./UserOperation")
 const { getHumanContract, getFactoryContract, getProvider } = require("./Contracts")
 const { HUMAN_ABI, ENTRY_POINT_ADDRESS, HUMAN_FACTORY_ADDRESS, BEACON_PROXY_BYTECODE, BEACON_PROXY_BYTECODE2, BEACON_ADDRESS } = require("./Constants")
@@ -55,16 +55,28 @@ async function masterSign(humanAddress, nonce, operationType, target, value, dat
     return signature
 }
 
-async function getHumanByEmailFromContract(email) {
+async function getHumanByCreate2SaltFromContract(create2Salt) {
     const factory = getFactoryContract()
-    return await factory.getHuman(email)
+    return await factory["getHuman(bytes32)"](create2Salt)
 }
 
-async function getHumanByEmail(email) {
-    const salt = ethers.utils.keccak256(ethers.utils.arrayify(ethers.utils.defaultAbiCoder.encode(["string"], [email])))
+async function getHumanByDeployParamsFromContract(safeOwners, timelock, owner, master, policies, inactivityTime, projectSalt) {
+    const factory = getFactoryContract()
+    return await factory["getHuman(address[],uint256,address,address,address,uint256,bytes32)"](safeOwners, timelock, owner, master, policies, inactivityTime, projectSalt)
+}
+
+async function getHumanByDeployParams(safeOwners, timelock, owner, master, policies, inactivityTime, projectSalt) {
+    const create2Salt = ethers.utils.keccak256(ethers.utils.arrayify(ethers.utils.defaultAbiCoder.encode(
+        ["address[]", "uint256", "address", "address", "address", "uint256", "bytes32"],
+        [safeOwners, timelock, owner, master, policies, inactivityTime, projectSalt]
+    )))
+    return getHumanByCreate2Salt(create2Salt)
+}
+
+async function getHumanByCreate2Salt(create2Salt) {
     const initCode = ethers.utils.solidityPack(["bytes", "bytes"], [BEACON_PROXY_BYTECODE, ethers.utils.defaultAbiCoder.encode(["address", "string"], [BEACON_ADDRESS, ""])])
     const initCodeHash = ethers.utils.keccak256(initCode)
-    return ethers.utils.getCreate2Address(HUMAN_FACTORY_ADDRESS, salt, initCodeHash)
+    return ethers.utils.getCreate2Address(HUMAN_FACTORY_ADDRESS, create2Salt, initCodeHash)
 }
 
 async function getHumanNonce(humanAddress) {
@@ -83,4 +95,4 @@ function encodeFunctionData(abi, functionName, paramsArray) {
     return contract.interface.encodeFunctionData(functionName, paramsArray)
 }
 
-module.exports = { getSignedUserOperation, getHumanByEmail }
+module.exports = { getSignedUserOperation, getHumanByDeployParams, getHumanByCreate2Salt, getHumanByCreate2SaltFromContract, getHumanByDeployParamsFromContract }
