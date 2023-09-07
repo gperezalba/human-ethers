@@ -8,9 +8,9 @@ const { handleOps } = require("./Entrypoint")
 main()
 async function main() {
     const signer = new ethers.Wallet(process.env.SIGNER_PRIV_KEY, getProvider()) //signer from W3A, human.owner()
-    const humanAddress = await getHumanByEmail("gperezalba94@gmail.com")
+    const humanAddress = "0x7f00cC95e3e7cbb936c73Ec96586D8d689296C99"
     const target = SET_MOCK_ADDRESS
-    const data = encodeFunctionData(SET_MOCK_ABI, "set", [ethers.BigNumber.from("9")])
+    const data = encodeFunctionData(SET_MOCK_ABI, "set", [ethers.BigNumber.from("7")])
     const setGas = await getProvider().estimateGas({
         from: humanAddress,
         to: target,

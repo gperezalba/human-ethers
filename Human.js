@@ -6,9 +6,10 @@ const { HUMAN_ABI, ENTRY_POINT_ADDRESS, HUMAN_FACTORY_ADDRESS, BEACON_PROXY_BYTE
 const { executeCheckOwner } = require("./ExecutePolicies")
 
 async function getSignedUserOperation(humanAddress, target, value, data, signer, callGas) {
-    const isPoliciesAllowed = await executeCheckOwner(target, data, value)
+    const operationType = "0"
+    const isPoliciesAllowed = await executeCheckOwner(operationType, target, data, value)
     const nonce = await getHumanNonce(humanAddress)
-    const estimateNonce = ethers.BigNumber.from(nonce.toString()).sub(ethers.BigNumber.from("1"))
+    const estimateNonce = nonce.toString() == "0" ? ethers.constants.MaxUint256 : ethers.BigNumber.from(nonce.toString()).sub(ethers.BigNumber.from("1"))
     const executeData = isPoliciesAllowed ? getExecuteData(target, value, data, "0x") : getExecuteData(target, value, data, await masterSign(humanAddress, nonce, "0", target, value, data))
     let executeGas = await getProvider().estimateGas({
         from: ENTRY_POINT_ADDRESS,
@@ -26,7 +27,7 @@ async function signUserOp(op, signer) {
     await provider.getBalance(ethers.constants.AddressZero) //without any rpc_call cant get chainId
 
     const hash = getUserOpHash(op, ENTRY_POINT_ADDRESS, provider._network.chainId)
-    return await signer.signMessage(hash)
+    return await signer.signMessage(ethers.utils.arrayify(hash))
 }
 
 async function populateUserOp(humanAddress, executeCalldata, executeGas) {
@@ -87,7 +88,7 @@ async function getHumanNonce(humanAddress) {
 function getExecuteData(target, value, data, signature) {
     const operationType = "0" //v1 only allows operationType = 0
     const executeData = ethers.utils.defaultAbiCoder.encode(["bytes", "bytes"], [data, signature])
-    return encodeFunctionData(HUMAN_ABI, "execute", [operationType, target, value, executeData])
+    return encodeFunctionData(HUMAN_ABI, "execute(uint256,address,uint256,bytes)", [operationType, target, value, executeData])
 }
 
 function encodeFunctionData(abi, functionName, paramsArray) {

@@ -10,5 +10,5 @@ async function main() {
     const policies = "0xBDE6a9e4278237098c021A44585B16fB35Fa3DEc"
     const inactivityTime = "7200" //2h
     const email = ethers.utils.id("email2@humanwallet.com")
-    deployHuman(safeOwners, timelock, owner, master, inactivityTime, email)
+    deployHuman(safeOwners, timelock, owner, master, policies, inactivityTime, email)
 }
