@@ -24,10 +24,11 @@ async function main() {
     try {
         await handleOps([userOp])
     } catch (error) {
+        //https://docs.ethers.org/v5/api/utils/abi/interface/#Interface--decoding
         const customErrorData = JSON.parse(error.error.body).error.data
         const entryPointInterface = new ethers.utils.Interface(HUMAN_ENTRY_POINT_ABI)
         try {
-            const result = entryPointInterface.decodeFunctionResult("handleOps", customErrorData)
+            entryPointInterface.decodeFunctionResult("handleOps", customErrorData)
         } catch (error) {
             console.log(error.errorName)
             console.log(error.errorArgs)
