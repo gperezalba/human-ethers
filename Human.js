@@ -5,7 +5,7 @@ const { getHumanContract, getFactoryContract, getProvider } = require("./Contrac
 const { HUMAN_ABI, ENTRY_POINT_ADDRESS, HUMAN_FACTORY_ADDRESS, BEACON_PROXY_BYTECODE, BEACON_PROXY_BYTECODE2, BEACON_ADDRESS } = require("./Constants")
 const { executeCheckOwner } = require("./ExecutePolicies")
 
-async function getSignedUserOperation(humanAddress, target, value, data, signer, callGas) {
+async function getSignedUserOperation(humanAddress, target, value, data, signer, callGas, initCode = "0x") {
     const operationType = "0"
     const isPoliciesAllowed = await executeCheckOwner(operationType, target, data, value)
     const nonce = await getHumanNonce(humanAddress)
@@ -16,7 +16,7 @@ async function getSignedUserOperation(humanAddress, target, value, data, signer,
         to: humanAddress,
         data: getExecuteData(target, value, data, await masterSign(humanAddress, estimateNonce, "0", target, value, data))
     })
-    const op = await populateUserOp(humanAddress, executeData, executeGas.add(callGas))
+    const op = await populateUserOp(humanAddress, executeData, executeGas.add(callGas), initCode)
     const signature = await signUserOp(op, signer)
     op.signature = signature
     return op
@@ -30,7 +30,7 @@ async function signUserOp(op, signer) {
     return await signer.signMessage(ethers.utils.arrayify(hash))
 }
 
-async function populateUserOp(humanAddress, executeCalldata, executeGas) {
+async function populateUserOp(humanAddress, executeCalldata, executeGas, initCode) {
     const nonce = await getHumanNonce(humanAddress)
     const op = {
         ...getEmptyUserOperation(),
@@ -38,8 +38,26 @@ async function populateUserOp(humanAddress, executeCalldata, executeGas) {
         nonce: nonce,
         callData: executeCalldata,
         callGasLimit: executeGas,
+        initCode: initCode,
     }
     return op
+}
+
+function getUserOpInitCode(safeOwners, timelock, owner, master, policies, inactivityTime, salt) {
+    const factoryContract = getFactoryContract()
+    const initCallData = factoryContract.interface.encodeFunctionData(
+        "deployHuman",
+        [
+            safeOwners,
+            timelock,
+            owner,
+            master,
+            policies,
+            inactivityTime,
+            salt
+        ]
+    )
+    return ethers.utils.solidityPack(["address", "bytes"], [HUMAN_FACTORY_ADDRESS, initCallData])
 }
 
 async function masterSign(humanAddress, nonce, operationType, target, value, data) {
@@ -82,7 +100,11 @@ async function getHumanByCreate2Salt(create2Salt) {
 
 async function getHumanNonce(humanAddress) {
     const humanContract = getHumanContract(humanAddress)
-    return await humanContract.nonce()
+    try {
+        return await humanContract.nonce()
+    } catch (error) {
+        return ethers.BigNumber.from("0")
+    }
 }
 
 function getExecuteData(target, value, data, signature) {
@@ -96,4 +118,4 @@ function encodeFunctionData(abi, functionName, paramsArray) {
     return contract.interface.encodeFunctionData(functionName, paramsArray)
 }
 
-module.exports = { getSignedUserOperation, getHumanByDeployParams, getHumanByCreate2Salt, getHumanByCreate2SaltFromContract, getHumanByDeployParamsFromContract }
+module.exports = { getSignedUserOperation, getUserOpInitCode, getHumanByDeployParams, getHumanByCreate2Salt, getHumanByCreate2SaltFromContract, getHumanByDeployParamsFromContract }
