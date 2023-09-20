@@ -2,7 +2,7 @@ const { ethers } = require("ethers")
 require("dotenv").config()
 const { getUserOpHash, getEmptyUserOperation } = require("./UserOperation")
 const { getHumanContract, getFactoryContract, getProvider } = require("./Contracts")
-const { HUMAN_ABI, ENTRY_POINT_ADDRESS, HUMAN_FACTORY_ADDRESS, BEACON_PROXY_BYTECODE, BEACON_PROXY_BYTECODE2, BEACON_ADDRESS } = require("./Constants")
+const { HUMAN_ABI, ENTRY_POINT_ADDRESS, HUMAN_FACTORY_ADDRESS, BEACON_PROXY_BYTECODE, BEACON_PROXY_BYTECODE2, BEACON_ADDRESS, ENTRYPOINT_DEPLOYEDBYTECODE, ENTRYPOINT_SIMULATIONS_ABI } = require("./Constants")
 const { executeCheckOwner } = require("./ExecutePolicies")
 
 async function getSignedUserOperation(humanAddress, target, value, data, signer, callGas, initCode = "0x") {
@@ -17,9 +17,39 @@ async function getSignedUserOperation(humanAddress, target, value, data, signer,
         data: getExecuteData(target, value, data, await masterSign(humanAddress, estimateNonce, "0", target, value, data))
     })
     const op = await populateUserOp(humanAddress, executeData, executeGas.add(callGas), initCode)
-    const signature = await signUserOp(op, signer)
-    op.signature = signature
+    op.signature = await signUserOp(op, signer)
+    const executionResult = await simulateHandleOp(op)
+    op.callGasLimit = executionResult.paid
+    op.signature = await signUserOp(op, signer)
     return op
+}
+
+async function simulateHandleOp(op) {
+    const entryPointSimulations = new ethers.utils.Interface(ENTRYPOINT_SIMULATIONS_ABI)
+    const data = entryPointSimulations.encodeFunctionData("simulateHandleOp", [op, ethers.constants.AddressZero, "0x"])
+    const tx = {
+        to: ENTRY_POINT_ADDRESS,
+        data: data,
+    }
+    const stateOverride = {
+        [ENTRY_POINT_ADDRESS]: {
+            code: ENTRYPOINT_DEPLOYEDBYTECODE
+        }
+    }
+
+    try {
+        const simulationResult = await getProvider().send('eth_call', [tx, 'latest', stateOverride])
+        const res = entryPointSimulations.decodeFunctionResult('simulateHandleOp', simulationResult)
+        // note: here collapsing the returned "tuple of one" into a single value - will break for returning actual tuples
+        return res[0]
+    } catch (error) {
+        const revertData = error?.data
+        if (revertData != null) {
+            // note: this line throws the revert reason instead of returning it
+            entryPointSimulations.decodeFunctionResult('simulateHandleOp', revertData)
+        }
+        throw error
+    }
 }
 
 async function signUserOp(op, signer) {
