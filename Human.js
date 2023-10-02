@@ -17,8 +17,9 @@ async function getSignedUserOperation(humanAddress, target, value, data, signer,
         data: getExecuteData(target, value, data, await masterSign(humanAddress, estimateNonce, "0", target, value, data))
     })
     const op = await populateUserOp(humanAddress, executeData, executeGas.add(callGas), initCode)
-    op.signature = await signUserOp(op, signer)
+    op.callData = getExecuteData(target, value, data, await masterSign(humanAddress, estimateNonce, "0", target, value, data))
     const executionResult = await simulateHandleOp(op)
+    op.callData = executeData
     op.callGasLimit = executionResult.paid
     op.signature = await signUserOp(op, signer)
     return op
